@@ -1,0 +1,31 @@
+{
+  "name": "react-native-circle-reveal-view",
+  "version": "0.0.1",
+  "description": "Animated view with circle transition",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lvlrSajjad/react-native-circle-reveal-view.git"
+  },
+  "keywords": [
+    "react-native",
+    "circle-reveal",
+    "reveal",
+    "view",
+    "circle-reveal-view",
+    "animated",
+    "animated-view",
+    "react-native-animation",
+    "transition",
+    "reveal-transition"
+  ],
+  "author": "Sajjad Asadi",
+  "license": "SEE LICENSE IN LICENCE",
+  "bugs": {
+    "url": "https://github.com/lvlrSajjad/react-native-circle-reveal-view/issues"
+  },
+  "homepage": "https://github.com/lvlrSajjad/react-native-circle-reveal-view#readme"
+}

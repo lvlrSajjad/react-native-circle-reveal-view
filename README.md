@@ -28,7 +28,7 @@ usage :
           backgroundColor={'white'}
           duration={500}
           style={{position: 'absolute', bottom: 48, right: 0, left: 0}}
-          revealPositionArray={{bottom:true,left:true}}
+          revealPositionArray={{bottom:true,left:true}}// must use less than two combination e.g bottom and left or top right or right
         >
           <View style={{flexDirection: 'row', width: '100%'}}>
             <View style={{flex: 1,alignItems:'center',justifyContent:'center'}}>

@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+lib/
+coverage/
+
+# Package tarballs
+*.tgz
+
+# Editors & OS
+.idea/
+.vscode/
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-error.log*

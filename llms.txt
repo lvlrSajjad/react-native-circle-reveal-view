@@ -1,0 +1,61 @@
+# react-native-circle-reveal-view
+
+> React Native component that reveals or hides its children with an animated expanding circle (Material "circular reveal"). Pure JavaScript, zero dependencies, TypeScript, animations on the native driver. Works with React Native 0.71+, React 18/19, Expo, Old and New Architecture, iOS, Android and Web.
+
+Install: `npm install react-native-circle-reveal-view`
+
+Import:
+```ts
+import { CircleRevealView } from 'react-native-circle-reveal-view';
+import type { CircleRevealViewRef, CircleRevealViewProps, RevealOrigin } from 'react-native-circle-reveal-view';
+```
+The default export is the same component.
+
+Minimal usage:
+```tsx
+const ref = useRef<CircleRevealViewRef>(null);
+<CircleRevealView
+  ref={ref}
+  style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 240 }}
+  backgroundColor="#1f6feb"
+  duration={450}
+  revealOrigin={{ bottom: true, right: true }}
+>
+  {children}
+</CircleRevealView>
+// later
+ref.current?.toggle();   // or expand() / collapse(); all return Promise<void>
+```
+
+Props (plus all React Native View props):
+- backgroundColor: ColorValue = '#ffffff' — fill of the circle / background of revealed area
+- duration: number = 500 — ms for the circle to grow or shrink
+- fadeDuration: number = 200 — ms for children fade after/before the circle
+- easing: EasingFunction — default Easing.out(cubic) on expand, Easing.in(cubic) on collapse
+- revealOrigin: { top?, bottom?, left?, right?: boolean } = {} — at most one vertical and one horizontal flag; omitted axis is centered; {} is the center
+- style: ViewStyle — outer container, usually absolutely positioned
+- contentContainerStyle: ViewStyle — wrapper around children
+- initiallyExpanded: boolean = false — start revealed without animating
+- onExpanded(): called when reveal finishes
+- onCollapsed(): called when hide finishes and children unmount
+- revealPositionArray: deprecated alias of revealOrigin
+
+Ref methods:
+- expand(): Promise<void> — mounts children, animates in; no-op if visible or animating
+- collapse(): Promise<void> — animates out, unmounts children; no-op if hidden or animating
+- toggle(): Promise<void>
+- isExpanded(): boolean
+
+Behaviour notes:
+- Renders null while collapsed, so it takes no layout space when hidden.
+- The circle diameter is the larger side of the measured container and it scales until it covers the container diagonal, so any container size is fully covered.
+- Both animations use useNativeDriver: true.
+
+Migration from 0.x: drop react-native-animatable; `revealPositionArray` still works but `revealOrigin` is preferred; ref methods now return promises.
+
+## Links
+- [README](https://github.com/lvlrSajjad/react-native-circle-reveal-view#readme): full documentation, API tables, recipes, migration guide
+- [Source](https://github.com/lvlrSajjad/react-native-circle-reveal-view/blob/master/src/CircleRevealView.tsx): the whole component, fully commented
+- [Example](https://github.com/lvlrSajjad/react-native-circle-reveal-view/blob/master/example/App.tsx): complete screen with a FAB toggling a revealed action bar
+- [CHANGELOG](https://github.com/lvlrSajjad/react-native-circle-reveal-view/blob/master/CHANGELOG.md)
+- [npm](https://www.npmjs.com/package/react-native-circle-reveal-view)

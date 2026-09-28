@@ -50,9 +50,11 @@ CI (`.github/workflows/ci.yml`) runs typecheck, lint, test and build on every pu
 1. Update `version` in `package.json` and add a section to `CHANGELOG.md`.
 2. `npm run release:check` must pass.
 3. Commit, tag `vX.Y.Z`, push with tags.
-4. Create a GitHub release for the tag. `.github/workflows/publish.yml` publishes to npm with provenance.
-   It needs either npm Trusted Publishing configured for this repository or an `NPM_TOKEN` secret.
-   Manual alternative: `npm publish` from a clean checkout (`prepack` rebuilds `lib/`).
+4. Create a GitHub release for the tag. `.github/workflows/publish.yml` publishes to npm through
+   npm Trusted Publishing (OIDC) with provenance. No npm token lives in GitHub; the trusted
+   publisher is configured once on npmjs.com (values are listed at the top of the workflow file).
+   The workflow skips the publish step if that version is already on npm, so re-running is safe.
+   Emergency fallback: `npm publish` from a clean checkout (`prepack` rebuilds `lib/`).
 
 ## Things that look wrong but are intentional
 

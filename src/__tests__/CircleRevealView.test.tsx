@@ -1,5 +1,5 @@
 import React, { createRef } from 'react';
-import { Text } from 'react-native';
+import { AccessibilityInfo, Animated, Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { CircleRevealView } from '../CircleRevealView';
 import type { CircleRevealViewRef } from '../CircleRevealView';
@@ -32,6 +32,8 @@ async function runAnimation(ms: number) {
 
 beforeEach(() => {
   jest.useFakeTimers();
+  // The RN jest preset ships shared jest.fn() mocks (e.g. AccessibilityInfo); clear their history.
+  jest.clearAllMocks();
 });
 
 afterEach(() => {
@@ -135,7 +137,13 @@ describe('CircleRevealView', () => {
     const container = screen.getByTestId('reveal');
     const circle = container.children[0] as unknown as { props: { style: unknown } };
     expect(circle.props.style).toEqual(
-      expect.objectContaining({ width: 300, height: 300, borderRadius: 150, bottom: -150, right: -150 })
+      expect.objectContaining({
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        bottom: -150,
+        right: -150,
+      })
     );
   });
 
@@ -147,5 +155,66 @@ describe('CircleRevealView', () => {
       </CircleRevealView>
     );
     expect(screen.getByText('Legacy')).toBeTruthy();
+  });
+
+  describe('reduceMotion', () => {
+    // The jest preset's native animated mock ends every animation after a fixed timer,
+    // so we assert on the durations handed to Animated.timing instead of on elapsed time.
+    const timingDurations = (spy: jest.SpyInstance) =>
+      spy.mock.calls.map((call) => (call[1] as { duration?: number }).duration);
+
+    it('reveals instantly when reduceMotion is true', async () => {
+      const timing = jest.spyOn(Animated, 'timing');
+      const onExpanded = jest.fn();
+      const { ref } = await renderView({ reduceMotion: true, onExpanded });
+      await act(async () => {
+        void ref.current!.expand();
+      });
+      expect(timingDurations(timing)).toEqual([0, 0]);
+      await runAnimation(DURATION + FADE + 50);
+      expect(onExpanded).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Hello')).toBeTruthy();
+      timing.mockRestore();
+    });
+
+    it('follows the OS setting by default', async () => {
+      (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockResolvedValueOnce(true);
+      const timing = jest.spyOn(Animated, 'timing');
+
+      const { ref, unmount } = await renderView();
+      await act(async () => {}); // let the isReduceMotionEnabled promise settle
+      expect(AccessibilityInfo.isReduceMotionEnabled).toHaveBeenCalledTimes(1);
+      expect(AccessibilityInfo.addEventListener).toHaveBeenCalledWith(
+        'reduceMotionChanged',
+        expect.any(Function)
+      );
+
+      await act(async () => {
+        void ref.current!.expand();
+      });
+      expect(timingDurations(timing)).toEqual([0, 0]);
+
+      const listener = (AccessibilityInfo.addEventListener as jest.Mock).mock;
+      const index = listener.calls.findIndex((call) => call[0] === 'reduceMotionChanged');
+      const subscription = listener.results[index]!.value as { remove: jest.Mock };
+      await unmount();
+      expect(subscription.remove).toHaveBeenCalled();
+      timing.mockRestore();
+    });
+
+    it('ignores the OS setting when reduceMotion is false', async () => {
+      (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockResolvedValueOnce(true);
+      const timing = jest.spyOn(Animated, 'timing');
+
+      const { ref } = await renderView({ reduceMotion: false });
+      await act(async () => {});
+      expect(AccessibilityInfo.isReduceMotionEnabled).not.toHaveBeenCalled();
+
+      await act(async () => {
+        void ref.current!.expand();
+      });
+      expect(timingDurations(timing)).toEqual([DURATION, FADE]);
+      timing.mockRestore();
+    });
   });
 });

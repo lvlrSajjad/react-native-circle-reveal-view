@@ -1,6 +1,6 @@
 {
   "name": "react-native-circle-reveal-view",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Circular reveal transition for React Native. Reveal or hide any view with an animated expanding circle, driven by the native animation driver. Zero dependencies, TypeScript, hooks-based, works with Expo, the New Architecture and React Native 0.71+.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",

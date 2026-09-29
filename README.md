@@ -23,6 +23,7 @@
 - **Any origin.** Reveal from any corner, any edge, or the center.
 - **Container aware.** The circle is sized from the measured container, so it always covers it, on any screen.
 - **Imperative and promise-based.** `expand()`, `collapse()` and `toggle()` resolve when the animation finishes.
+- **Accessible.** Honors the OS "Reduce Motion" setting out of the box.
 - **Typed.** Written in TypeScript with full JSDoc on every prop.
 - **Works everywhere.** React Native 0.71+, React 18/19, Old and New Architecture, iOS, Android and Web.
 
@@ -75,20 +76,21 @@ A complete, copy-pasteable screen lives in [`example/App.tsx`](./example/App.tsx
 
 Accepts every [`View`](https://reactnative.dev/docs/view#props) prop plus the following.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` | `ReactNode` | — | Content shown inside the revealed area. Mounted only while revealed. |
-| `backgroundColor` | `ColorValue` | `'#ffffff'` | Fill color of the circle, which becomes the background of the revealed area. |
-| `duration` | `number` | `500` | Milliseconds for the circle to grow or shrink. |
-| `fadeDuration` | `number` | `200` | Milliseconds for the children to fade in after the circle, or out before it. |
-| `easing` | `EasingFunction` | `Easing.out(Easing.cubic)` on expand, `Easing.in(Easing.cubic)` on collapse | Easing for the circle animation. |
-| `revealOrigin` | [`RevealOrigin`](#revealorigin) | `{}` (center) | Corner or edge the circle grows from. |
-| `style` | `StyleProp<ViewStyle>` | — | Style of the outer container. Usually absolutely positioned. |
-| `contentContainerStyle` | `StyleProp<ViewStyle>` | — | Style of the wrapper around `children`. |
-| `initiallyExpanded` | `boolean` | `false` | Start revealed, without animating. |
-| `onExpanded` | `() => void` | — | Called when the reveal animation finishes. |
-| `onCollapsed` | `() => void` | — | Called when the hide animation finishes and children unmount. |
-| `revealPositionArray` | `RevealOrigin` | — | **Deprecated.** Alias of `revealOrigin` kept for 0.x compatibility. |
+| Prop                    | Type                            | Default                                                                     | Description                                                                                                                |
+| ----------------------- | ------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `children`              | `ReactNode`                     | —                                                                           | Content shown inside the revealed area. Mounted only while revealed.                                                       |
+| `backgroundColor`       | `ColorValue`                    | `'#ffffff'`                                                                 | Fill color of the circle, which becomes the background of the revealed area.                                               |
+| `duration`              | `number`                        | `500`                                                                       | Milliseconds for the circle to grow or shrink.                                                                             |
+| `fadeDuration`          | `number`                        | `200`                                                                       | Milliseconds for the children to fade in after the circle, or out before it.                                               |
+| `easing`                | `EasingFunction`                | `Easing.out(Easing.cubic)` on expand, `Easing.in(Easing.cubic)` on collapse | Easing for the circle animation.                                                                                           |
+| `revealOrigin`          | [`RevealOrigin`](#revealorigin) | `{}` (center)                                                               | Corner or edge the circle grows from.                                                                                      |
+| `style`                 | `StyleProp<ViewStyle>`          | —                                                                           | Style of the outer container. Usually absolutely positioned.                                                               |
+| `contentContainerStyle` | `StyleProp<ViewStyle>`          | —                                                                           | Style of the wrapper around `children`.                                                                                    |
+| `initiallyExpanded`     | `boolean`                       | `false`                                                                     | Start revealed, without animating.                                                                                         |
+| `reduceMotion`          | `boolean \| 'system'`           | `'system'`                                                                  | `'system'` reveals instantly when the OS "Reduce Motion" setting is on. `true` is always instant, `false` always animates. |
+| `onExpanded`            | `() => void`                    | —                                                                           | Called when the reveal animation finishes.                                                                                 |
+| `onCollapsed`           | `() => void`                    | —                                                                           | Called when the hide animation finishes and children unmount.                                                              |
+| `revealPositionArray`   | `RevealOrigin`                  | —                                                                           | **Deprecated.** Alias of `revealOrigin` kept for 0.x compatibility.                                                        |
 
 ### `RevealOrigin`
 
@@ -103,22 +105,22 @@ interface RevealOrigin {
 
 Use at most one vertical flag and one horizontal flag. An axis you leave out is centered.
 
-| Value | Circle grows from |
-| --- | --- |
-| `{ bottom: true, right: true }` | bottom-right corner |
-| `{ top: true, left: true }` | top-left corner |
-| `{ bottom: true }` | middle of the bottom edge |
-| `{ left: true }` | middle of the left edge |
-| `{}` | center of the view |
+| Value                           | Circle grows from         |
+| ------------------------------- | ------------------------- |
+| `{ bottom: true, right: true }` | bottom-right corner       |
+| `{ top: true, left: true }`     | top-left corner           |
+| `{ bottom: true }`              | middle of the bottom edge |
+| `{ left: true }`                | middle of the left edge   |
+| `{}`                            | center of the view        |
 
 ### Ref: `CircleRevealViewRef`
 
-| Method | Returns | Description |
-| --- | --- | --- |
-| `expand()` | `Promise<void>` | Mounts the children and plays the reveal. Resolves when done. No-op if already revealed or animating. |
-| `collapse()` | `Promise<void>` | Plays the hide animation and unmounts the children. Resolves when done. No-op if already hidden or animating. |
-| `toggle()` | `Promise<void>` | `expand()` when hidden, `collapse()` when revealed. |
-| `isExpanded()` | `boolean` | `true` while revealed, including during the reveal animation. |
+| Method         | Returns         | Description                                                                                                   |
+| -------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `expand()`     | `Promise<void>` | Mounts the children and plays the reveal. Resolves when done. No-op if already revealed or animating.         |
+| `collapse()`   | `Promise<void>` | Plays the hide animation and unmounts the children. Resolves when done. No-op if already hidden or animating. |
+| `toggle()`     | `Promise<void>` | `expand()` when hidden, `collapse()` when revealed.                                                           |
+| `isExpanded()` | `boolean`       | `true` while revealed, including during the reveal animation.                                                 |
 
 ```tsx
 await revealRef.current?.expand();
@@ -131,7 +133,7 @@ console.log(revealRef.current?.isExpanded()); // true
 2. A circle whose diameter is the larger side of the container is placed at the chosen origin and scaled from 0 until it covers the container's diagonal.
 3. The children fade in on top. `collapse()` runs the same steps in reverse and unmounts the children.
 
-Both animations use `useNativeDriver: true`.
+Both animations use `useNativeDriver: true`. When the user has turned on "Reduce Motion" in iOS or Android accessibility settings, both steps run with a duration of `0`, so the content appears and disappears instantly while every callback and promise still fires. Override with the `reduceMotion` prop.
 
 ## Recipes
 
@@ -173,15 +175,15 @@ await runNextAnimation();
 
 Version 1.0 is a rewrite. The old API still works, with these differences.
 
-| 0.x | 1.x |
-| --- | --- |
-| `import CircleTransition from 'react-native-circle-reveal-view'` | Still works. Preferred: `import { CircleRevealView } from '...'` |
-| Requires `react-native-animatable` | No dependencies. Uninstall `react-native-animatable` if nothing else uses it. |
-| `revealPositionArray={{ bottom: true }}` | Still works. Preferred: `revealOrigin={{ bottom: true }}` |
-| `expand()` / `collapse()` / `toggle()` return `undefined` | Return a `Promise<void>` |
-| Circle sized from the window width | Circle sized from the measured container |
-| Class component, `ref` gives the instance | Function component, `ref` gives a [`CircleRevealViewRef`](#ref-circlerevealviewref) |
-| No types | TypeScript types included |
+| 0.x                                                              | 1.x                                                                                 |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `import CircleTransition from 'react-native-circle-reveal-view'` | Still works. Preferred: `import { CircleRevealView } from '...'`                    |
+| Requires `react-native-animatable`                               | No dependencies. Uninstall `react-native-animatable` if nothing else uses it.       |
+| `revealPositionArray={{ bottom: true }}`                         | Still works. Preferred: `revealOrigin={{ bottom: true }}`                           |
+| `expand()` / `collapse()` / `toggle()` return `undefined`        | Return a `Promise<void>`                                                            |
+| Circle sized from the window width                               | Circle sized from the measured container                                            |
+| Class component, `ref` gives the instance                        | Function component, `ref` gives a [`CircleRevealViewRef`](#ref-circlerevealviewref) |
+| No types                                                         | TypeScript types included                                                           |
 
 ## Requirements
 

@@ -7,7 +7,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type {
   ColorValue,
   EasingFunction,
@@ -94,6 +101,14 @@ export interface CircleRevealViewProps extends Omit<ViewProps, 'style' | 'childr
    * @default false
    */
   initiallyExpanded?: boolean;
+  /**
+   * Controls the animation when the user has enabled "Reduce Motion" in their OS settings.
+   * - `'system'`: follow the OS setting; when it is on, reveal and hide instantly (no animation).
+   * - `true`: always instant.
+   * - `false`: always animate, ignoring the OS setting.
+   * @default 'system'
+   */
+  reduceMotion?: boolean | 'system';
   /** Called after the reveal animation has finished. */
   onExpanded?: () => void;
   /** Called after the hide animation has finished and children have been unmounted. */
@@ -109,6 +124,30 @@ const COVERAGE_MARGIN = 1.05;
 interface Size {
   width: number;
   height: number;
+}
+
+/** Tracks the OS "Reduce Motion" setting. Only subscribes when `enabled` is true. */
+function useSystemReduceMotion(enabled: boolean): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => {
+        if (active) setReduced(value);
+      })
+      .catch(() => {
+        // Native module unavailable (e.g. tests, some web setups): keep animating.
+      });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (value) => {
+      if (active) setReduced(value);
+    });
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [enabled]);
+  return enabled && reduced;
 }
 
 /**
@@ -130,6 +169,7 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
       style,
       contentContainerStyle,
       initiallyExpanded = false,
+      reduceMotion = 'system',
       onExpanded,
       onCollapsed,
       ...viewProps
@@ -138,22 +178,21 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
   ) {
     const origin = revealOrigin ?? revealPositionArray ?? {};
     const window = useWindowDimensions();
+    const systemReduceMotion = useSystemReduceMotion(reduceMotion === 'system');
+    const instant = reduceMotion === true || systemReduceMotion;
 
     const [visible, setVisible] = useState(initiallyExpanded);
     const [size, setSize] = useState<Size | null>(null);
 
     // 0 = fully collapsed, 1 = fully expanded. Interpolated to the real scale below.
-    const progress = useRef(new Animated.Value(initiallyExpanded ? 1 : 0)).current;
-    const contentOpacity = useRef(new Animated.Value(initiallyExpanded ? 1 : 0)).current;
+    const [progress] = useState(() => new Animated.Value(initiallyExpanded ? 1 : 0));
+    const [contentOpacity] = useState(() => new Animated.Value(initiallyExpanded ? 1 : 0));
 
     const animatingRef = useRef(false);
     const visibleRef = useRef(initiallyExpanded);
     const mountedRef = useRef(true);
     const pendingExpandRef = useRef<((finished: boolean) => void) | null>(null);
     const runningRef = useRef<Animated.CompositeAnimation | null>(null);
-
-    const latest = useRef({ duration, fadeDuration, easing, onExpanded, onCollapsed });
-    latest.current = { duration, fadeDuration, easing, onExpanded, onCollapsed };
 
     useEffect(() => {
       mountedRef.current = true;
@@ -189,7 +228,15 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
           ? { right: -half }
           : { left: measured.width / 2 - half };
       return { ...vertical, ...horizontal };
-    }, [diameter, measured.width, measured.height, origin.top, origin.bottom, origin.left, origin.right]);
+    }, [
+      diameter,
+      measured.width,
+      measured.height,
+      origin.top,
+      origin.bottom,
+      origin.left,
+      origin.right,
+    ]);
 
     const onLayout = useCallback(
       (event: LayoutChangeEvent) => {
@@ -219,19 +266,28 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
       const done = pendingExpandRef.current;
       pendingExpandRef.current = null;
 
-      const { duration: d, fadeDuration: fd, easing: e } = latest.current;
       const animation = Animated.sequence([
-        timing(progress, 1, d, e ?? Easing.out(Easing.cubic)),
-        timing(contentOpacity, 1, fd),
+        timing(progress, 1, instant ? 0 : duration, easing ?? Easing.out(Easing.cubic)),
+        timing(contentOpacity, 1, instant ? 0 : fadeDuration),
       ]);
       runningRef.current = animation;
       animation.start(({ finished }) => {
         runningRef.current = null;
         animatingRef.current = false;
-        if (finished && mountedRef.current) latest.current.onExpanded?.();
+        if (finished && mountedRef.current) onExpanded?.();
         done(finished);
       });
-    }, [visible, progress, contentOpacity, timing]);
+    }, [
+      visible,
+      progress,
+      contentOpacity,
+      timing,
+      duration,
+      fadeDuration,
+      easing,
+      instant,
+      onExpanded,
+    ]);
 
     const expand = useCallback((): Promise<void> => {
       if (animatingRef.current || visibleRef.current) return Promise.resolve();
@@ -248,11 +304,10 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
       animatingRef.current = true;
       visibleRef.current = false;
 
-      const { duration: d, fadeDuration: fd, easing: e } = latest.current;
       return new Promise<void>((resolve) => {
         const animation = Animated.parallel([
-          timing(contentOpacity, 0, fd),
-          timing(progress, 0, d, e ?? Easing.in(Easing.cubic)),
+          timing(contentOpacity, 0, instant ? 0 : fadeDuration),
+          timing(progress, 0, instant ? 0 : duration, easing ?? Easing.in(Easing.cubic)),
         ]);
         runningRef.current = animation;
         animation.start(({ finished }) => {
@@ -260,12 +315,12 @@ export const CircleRevealView = forwardRef<CircleRevealViewRef, CircleRevealView
           animatingRef.current = false;
           if (finished && mountedRef.current) {
             setVisible(false);
-            latest.current.onCollapsed?.();
+            onCollapsed?.();
           }
           resolve();
         });
       });
-    }, [contentOpacity, progress, timing]);
+    }, [contentOpacity, progress, timing, duration, fadeDuration, easing, instant, onCollapsed]);
 
     const toggle = useCallback(
       () => (visibleRef.current ? collapse() : expand()),
